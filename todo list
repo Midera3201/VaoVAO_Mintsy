@@ -1,0 +1,30 @@
+Sprint 1 :
+test : 
+-creer class annotation 1 => package ze tina(au niveau Framework)
+-testController de annotena @ le Framework(au niveau test)
+
+mila code mander au demarage appel web(mampiasa listener)
+1 appel (init:fonction antsoina indray mande)
+
+FrontControllerServlet : 
+boucle liste et affiche 
+
+-donner des information
+
+methode 1 :on donne l annotation, verification que cette annotation existe
+methode 2 : on donne la class et l annotation , puis il liste les class qui on l existance de cette annotation
+
+cd Framework => mvn clean install
+cd test => mvn clean package 
+
+
+
+
+Sprint-2:tsy mbola executena fa identifiena 
+-creer type annotation :variable
+manana classe ray EmptController:manana methode liste @urlmapping ("url=")
+affichage atao ny /emp/list/ ao amin ny empliste
+--affichage /emp/new ao amin ny Empnew 
+urlmapping ilay annotation
+
+Refa Tsy fantatr ilay url de mampiasa Throws 
