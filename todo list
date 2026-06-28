@@ -28,3 +28,15 @@ affichage atao ny /emp/list/ ao amin ny empliste
 urlmapping ilay annotation
 
 Refa Tsy fantatr ilay url de mampiasa Throws 
+
+
+
+Sprint 3
+Mizara roa (02)
+-manana testController :@url("/Test) ->GET
+dia tsy afaka manao 
+-@url("test")POST
+sur definissena lay fonction raha manana methode test anankiroa
+@url("Ast","GET")
+
+ophgo2-antsoina fotsn lay methode 
