@@ -5,8 +5,12 @@ import com.framework.annotation.controller;
 
 @controller
 public class EmpController {
-    @UrlMapping(url = "/emp/list/")
+    @UrlMapping(url = "/emp/list/", method = "GET")
     public void empListe() {
+    }
+
+    @UrlMapping(url = "/emp/list/", method = "POST")
+    public void empListePost() {
     }
 
     @UrlMapping(url = "/emp/new")
