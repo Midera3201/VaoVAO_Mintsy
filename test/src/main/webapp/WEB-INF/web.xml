@@ -4,6 +4,25 @@
          xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
          version="6.0">
 
+    <!-- Parametres de configuration du framework -->
+    <context-param>
+        <param-name>controller</param-name>
+        <param-value>controller</param-value>
+    </context-param>
+    <context-param>
+        <param-name>viewPrefix</param-name>
+        <param-value>/WEB-INF/views/</param-value>
+    </context-param>
+    <context-param>
+        <param-name>viewSuffix</param-name>
+        <param-value>.jsp</param-value>
+    </context-param>
+
+    <!-- Initialisation du framework au demarrage -->
+    <listener>
+        <listener-class>com.framework.listener.ApplicationListener</listener-class>
+    </listener>
+
     <!-- Le servlet provient du .jar du framework (com.framework.FrontControllerServlet) -->
     <servlet>
         <servlet-name>FrontControllerServlet</servlet-name>
