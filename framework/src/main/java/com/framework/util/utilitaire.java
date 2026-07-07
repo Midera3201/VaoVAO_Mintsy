@@ -1,16 +1,39 @@
 package com.framework.util;
 
+import com.framework.annotation.UrlMapping;
+import com.framework.annotation.controller;
+
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 
-public class utilitaire {
+public class Utilitaire {
 
-    public static List<Class<?>> listerClassesAvecAnnotation(String packageName, Class<? extends Annotation> annotation) throws IOException {
+    public static void getUrlAndMethod(String packageName, HashMap<UtilMethode, Mapping> urlMapping) throws Exception {
+        List<Class<?>> controllerClasses = listerClassesAvecAnnotation(packageName, controller.class);
+
+        for (Class<?> controllerClass : controllerClasses) {
+            for (Method method : controllerClass.getDeclaredMethods()) {
+                if (method.isAnnotationPresent(UrlMapping.class)) {
+                    UrlMapping annotation = method.getAnnotation(UrlMapping.class);
+                    String url = annotation.url();
+                    String httpMethod = annotation.method().toUpperCase();
+
+                    UtilMethode cle = new UtilMethode(url, httpMethod);
+                    Mapping valeur = new Mapping(controllerClass, method);
+
+                    urlMapping.put(cle, valeur);
+                }
+            }
+        }
+    }
+
+    private static List<Class<?>> listerClassesAvecAnnotation(String packageName, Class<? extends java.lang.annotation.Annotation> annotation) throws IOException {
         List<Class<?>> result = new ArrayList<>();
         String path = packageName.replace('.', '/');
 
@@ -25,7 +48,7 @@ public class utilitaire {
         return result;
     }
 
-    private static void scanDirectory(File directory, String packageName, Class<? extends Annotation> annotation, List<Class<?>> result) {
+    private static void scanDirectory(File directory, String packageName, Class<? extends java.lang.annotation.Annotation> annotation, List<Class<?>> result) {
         File[] files = directory.listFiles();
         if (files == null) return;
 
