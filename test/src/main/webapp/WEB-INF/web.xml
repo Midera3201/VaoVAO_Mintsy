@@ -18,6 +18,24 @@
         <param-value>.jsp</param-value>
     </context-param>
 
+    <!-- Parametres de connexion a la base de donnees -->
+    <context-param>
+        <param-name>db.driver</param-name>
+        <param-value>org.postgresql.Driver</param-value>
+    </context-param>
+    <context-param>
+        <param-name>db.url</param-name>
+        <param-value>jdbc:postgresql://localhost:5432/vaovao</param-value>
+    </context-param>
+    <context-param>
+        <param-name>db.user</param-name>
+        <param-value>postgres</param-value>
+    </context-param>
+    <context-param>
+        <param-name>db.password</param-name>
+        <param-value>midera</param-value>
+    </context-param>
+
     <!-- Initialisation du framework au demarrage -->
     <listener>
         <listener-class>com.framework.listener.ApplicationListener</listener-class>
@@ -29,10 +47,10 @@
         <servlet-class>com.framework.FrontControllerServlet</servlet-class>
     </servlet>
 
-    <!-- Toutes les requetes passent par le Front Controller -->
+    <!-- Le Front Controller intercepte les requetes (sauf JSP et ressources statiques) -->
     <servlet-mapping>
         <servlet-name>FrontControllerServlet</servlet-name>
-        <url-pattern>/*</url-pattern>
+        <url-pattern>/</url-pattern>
     </servlet-mapping>
 
 </web-app>

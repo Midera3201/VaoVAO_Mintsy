@@ -4,18 +4,17 @@ import com.framework.annotation.UrlMapping;
 import com.framework.annotation.controller;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+
+import jakarta.servlet.ServletContext;
 
 public class Utilitaire {
 
-    public static void getUrlAndMethod(String packageName, HashMap<UtilMethode, Mapping> urlMapping) throws Exception {
-        List<Class<?>> controllerClasses = listerClassesAvecAnnotation(packageName, controller.class);
+    public static void getUrlAndMethod(String packageName, HashMap<UtilMethode, Mapping> urlMapping, ServletContext context) throws Exception {
+        List<Class<?>> controllerClasses = listerClassesAvecAnnotation(packageName, controller.class, context);
+
+        System.out.println("[Framework] " + controllerClasses.size() + " classe(s) @controller trouvee(s)");
 
         for (Class<?> controllerClass : controllerClasses) {
             for (Method method : controllerClass.getDeclaredMethods()) {
@@ -28,23 +27,55 @@ public class Utilitaire {
                     Mapping valeur = new Mapping(controllerClass, method);
 
                     urlMapping.put(cle, valeur);
+                    System.out.println("[Framework] Route: [" + httpMethod + "] " + url + " -> " + method.getName());
                 }
             }
         }
     }
 
-    private static List<Class<?>> listerClassesAvecAnnotation(String packageName, Class<? extends java.lang.annotation.Annotation> annotation) throws IOException {
+    public static List<Class<?>> listerClassesAvecAnnotation(String packageName, Class<? extends java.lang.annotation.Annotation> annotation, ServletContext context) {
         List<Class<?>> result = new ArrayList<>();
-        String path = packageName.replace('.', '/');
+        String packagePath = packageName.replace('.', '/');
+        String webPath = "/WEB-INF/classes/" + packagePath;
 
-        Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(path);
-        while (resources.hasMoreElements()) {
-            URL resource = resources.nextElement();
-            File directory = new File(resource.getFile());
-            if (directory.exists()) {
-                scanDirectory(directory, packageName, annotation, result);
+        // Methode 1 : getResourcePaths (standard Servlet API)
+        Set<String> paths = context.getResourcePaths(webPath);
+        if (paths != null && !paths.isEmpty()) {
+            System.out.println("[Framework] getResourcePaths a trouve " + paths.size() + " entree(s) dans " + webPath);
+            for (String path : paths) {
+                if (path.endsWith(".class")) {
+                    String fileName = path.substring(path.lastIndexOf('/') + 1);
+                    String className = packageName + "." + fileName.substring(0, fileName.length() - 6);
+                    try {
+                        Class<?> clazz = Class.forName(className);
+                        if (clazz.isAnnotationPresent(annotation)) {
+                            result.add(clazz);
+                        }
+                    } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                        System.err.println("[Framework] Classe non chargee: " + className + " - " + e.getMessage());
+                    }
+                }
             }
+            return result;
         }
+
+        // Methode 2 : getRealPath (fallback)
+        System.out.println("[Framework] getResourcePaths a echoue pour " + webPath + ", essai getRealPath");
+        String realPath = context.getRealPath(webPath);
+        System.out.println("[Framework] getRealPath(" + webPath + ") = " + realPath);
+        if (realPath == null) {
+            System.out.println("[Framework] ERREUR: getRealPath a retourne null");
+            return result;
+        }
+
+        File directory = new File(realPath);
+        if (!directory.exists()) {
+            System.out.println("[Framework] ERREUR: Le dossier " + realPath + " n'existe pas");
+            return result;
+        }
+
+        System.out.println("[Framework] Scan du dossier: " + realPath);
+        scanDirectory(directory, packageName, annotation, result);
         return result;
     }
 
@@ -63,7 +94,7 @@ public class Utilitaire {
                         result.add(clazz);
                     }
                 } catch (ClassNotFoundException | NoClassDefFoundError e) {
-                    // skip si la classe n'est pas chargeable
+                    System.err.println("[Framework] Classe non chargee: " + className + " - " + e.getMessage());
                 }
             }
         }
