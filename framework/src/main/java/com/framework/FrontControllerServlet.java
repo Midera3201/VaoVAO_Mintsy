@@ -1,6 +1,8 @@
 package com.framework;
 
 import com.framework.util.Mapping;
+import com.framework.util.Model;
+import com.framework.util.ModelAndView;
 import com.framework.util.UtilMethode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -8,7 +10,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.Map;
 
 public class FrontControllerServlet extends HttpServlet {
 
@@ -22,49 +26,71 @@ public class FrontControllerServlet extends HttpServlet {
         HashMap<UtilMethode, Mapping> urlMapping =
                 (HashMap<UtilMethode, Mapping>) getServletContext().getAttribute("urlMapping");
 
-        try (PrintWriter out = response.getWriter()) {
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head><title>Front Controller</title></head>");
-            out.println("<body>");
-
-            if (pathInfo.equals("/") || pathInfo.isEmpty()) {
-                out.println("<h1>Bienvenue sur le Framework</h1>");
-                out.println("<h2>Routes enregistrees</h2>");
-
-                if (urlMapping == null || urlMapping.isEmpty()) {
-                    out.println("<p>Aucune route trouvee.</p>");
-                } else {
-                    out.println("<ul>");
-                    for (UtilMethode cle : urlMapping.keySet()) {
-                        out.println("<li>[" + cle.getHttpMethod() + "] " + cle.getUrl() + "</li>");
-                    }
-                    out.println("</ul>");
-                }
+        if (pathInfo.equals("/") || pathInfo.isEmpty()) {
+            PrintWriter out = response.getWriter();
+            out.println("<h1>Bienvenue sur le Framework</h1>");
+            if (urlMapping == null || urlMapping.isEmpty()) {
+                out.println("<p style='color:red'>Aucune route enregistree.</p>");
             } else {
-                UtilMethode cle = new UtilMethode(pathInfo, httpMethod);
-                Mapping mapping = urlMapping.get(cle);
-
-                if (mapping != null) {
-                    try {
-                        Object instance = mapping.getControllerClass().getDeclaredConstructor().newInstance();
-                        mapping.getMethod().invoke(instance);
-                        out.println("<h1>Execution reussie</h1>");
-                        out.println("<p>URL : " + pathInfo + "</p>");
-                        out.println("<p>Methode HTTP : " + httpMethod + "</p>");
-                        out.println("<p>Methode executee : " + mapping.getMethod().getName() + "</p>");
-                    } catch (Exception e) {
-                        throw new ServletException("Erreur lors de l'invocation de la methode " + mapping.getMethod().getName(), e);
-                    }
-                } else {
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND,
-                            "Aucune methode trouvee pour l'URL '" + pathInfo + "' avec la methode HTTP " + httpMethod);
+                out.println("<h2>Routes enregistrees</h2><ul>");
+                for (UtilMethode cle : urlMapping.keySet()) {
+                    out.println("<li>[" + cle.getHttpMethod() + "] " + cle.getUrl() + "</li>");
                 }
+                out.println("</ul>");
+            }
+            return;
+        }
+
+        UtilMethode cle = new UtilMethode(pathInfo, httpMethod);
+        Mapping mapping = urlMapping.get(cle);
+
+        if (mapping == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND,
+                    "Aucune methode trouvee pour l'URL '" + pathInfo + "' avec la methode HTTP " + httpMethod);
+            return;
+        }
+
+        try {
+            Object instance = mapping.getControllerClass().getDeclaredConstructor().newInstance();
+            Method method = mapping.getMethod();
+
+            Model model = new Model();
+            Object[] args = buildMethodArgs(method, model, request, response);
+            String viewName = (String) method.invoke(instance, args);
+
+            String prefix = (String) getServletContext().getAttribute("viewPrefix");
+            String suffix = (String) getServletContext().getAttribute("viewSuffix");
+
+            ModelAndView mav = new ModelAndView(viewName);
+            for (Map.Entry<String, Object> entry : model.getData().entrySet()) {
+                mav.addObject(entry.getKey(), entry.getValue());
+                request.setAttribute(entry.getKey(), entry.getValue());
             }
 
-            out.println("</body>");
-            out.println("</html>");
+            String viewPath = (prefix != null ? prefix : "") + viewName + (suffix != null ? suffix : "");
+            request.getRequestDispatcher(viewPath).forward(request, response);
+
+        } catch (Exception e) {
+            throw new ServletException("Erreur lors de l'invocation de la methode " + mapping.getMethod().getName(), e);
         }
+    }
+
+    private Object[] buildMethodArgs(Method method, Model model, HttpServletRequest request, HttpServletResponse response) {
+        Class<?>[] paramTypes = method.getParameterTypes();
+        if (paramTypes.length == 0) {
+            return new Object[0];
+        }
+        Object[] args = new Object[paramTypes.length];
+        for (int i = 0; i < paramTypes.length; i++) {
+            if (paramTypes[i] == Model.class) {
+                args[i] = model;
+            } else if (paramTypes[i] == HttpServletRequest.class) {
+                args[i] = request;
+            } else if (paramTypes[i] == HttpServletResponse.class) {
+                args[i] = response;
+            }
+        }
+        return args;
     }
 
     @Override

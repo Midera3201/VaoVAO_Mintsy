@@ -46,15 +46,21 @@ ophgo2-antsoina fotsn lay methode
 
 
 
-Sprint 5
--liste atao dur manombok manisy vue
--Controller:mi gerer framework ,gerer liste ,@url
--Repositoryentite :te hanana liste mvt ao base de donnnees
--asaina miretourner string dia mandray am parametre modele izy
--misy attribut map ao amle modele 
--Map Sring Object 
--m.SetAtrribut("...")
--manampy parametre roa :suffixe et prefixe dia contantener any am init param
-alainy ny parametre anlay methode izay misy argument na modele et recuperer celle ci
--Model and view :manana attribut map ,invoquer cote framework
--donnnees: 
+    Sprint 5
+    -liste atao dur manombok manisy vue
+    -Controller:mi gerer framework ,gerer liste ,@url
+    -Repositoryentite :te hanana liste mvt ao base de donnnees
+    -asaina miretourner string dia mandray am parametre modele izy
+    -misy attribut map ao amle modele 
+    -Map Sring Object 
+    -m.SetAtrribut("...")
+    -manampy parametre roa :suffixe et prefixe dia contantener any am init param
+    alainy ny parametre anlay methode izay misy argument na modele et recuperer celle ci
+    -Model and view :manana attribut map ,invoquer cote framework
+    -donnnees: 
+
+
+    Sprint:5-2
+    -Conteneur spring dia indray mande ihany 
+    -tsy atao en dure fa avy anaty base
+    -spring misy couche Repository

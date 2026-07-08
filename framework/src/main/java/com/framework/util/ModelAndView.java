@@ -1,0 +1,30 @@
+package com.framework.util;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ModelAndView {
+    private String viewName;
+    private Map<String, Object> data = new HashMap<>();
+
+    public ModelAndView(String viewName) {
+        this.viewName = viewName;
+    }
+
+    public ModelAndView(String viewName, String key, Object value) {
+        this.viewName = viewName;
+        data.put(key, value);
+    }
+
+    public void addObject(String key, Object value) {
+        data.put(key, value);
+    }
+
+    public String getViewName() {
+        return viewName;
+    }
+
+    public Map<String, Object> getData() {
+        return data;
+    }
+}
