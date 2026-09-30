@@ -10,4 +10,6 @@ import java.lang.annotation.Target;
 public @interface UrlMapping {
     String url();
     String method() default "GET";
+
+public @interface APIjson{}
 }

@@ -56,30 +56,6 @@ public class ApplicationListener implements ServletContextListener {
 
     }
 
-    private void runInitSql() {
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream("init.sql")) {
-            if (in == null) return;
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-            StringBuilder sql = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty() || line.startsWith("--")) continue;
-                sql.append(line).append(" ");
-                if (line.endsWith(";")) {
-                    try (Connection conn = DatabaseConfig.getConnection();
-                         Statement stmt = conn.createStatement()) {
-                        stmt.executeUpdate(sql.toString());
-                    }
-                    sql.setLength(0);
-                }
-            }
-            System.out.println("Donnees initiales inserees depuis init.sql");
-        } catch (Exception e) {
-            System.err.println("Erreur init.sql: " + e.getMessage());
-        }
-    }
-
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
 
