@@ -1,19 +1,36 @@
 package com.framework.util;
 
-public class Mapping {
-    private Class<?> controllerClass;
-    private java.lang.reflect.Method method;
+import java.lang.reflect.Method;
 
-    public Mapping(Class<?> controllerClass, java.lang.reflect.Method method) {
+public class Mapping {
+
+    private Class<?> controllerClass;
+    private Method method;
+    private boolean json;
+
+    public Mapping(Class<?> controllerClass, Method method) {
+        this(controllerClass, method, false);
+    }
+
+    public Mapping(Class<?> controllerClass, Method method, boolean json) {
         this.controllerClass = controllerClass;
         this.method = method;
+        this.json = json;
     }
 
     public Class<?> getControllerClass() {
         return controllerClass;
     }
 
-    public java.lang.reflect.Method getMethod() {
+    public Method getMethod() {
         return method;
+    }
+
+    /**
+     * true si la methode est annotee @ApiJson : le resultat sera
+     * serialise en JSON au lieu d'etre traite comme un nom de vue.
+     */
+    public boolean isJson() {
+        return json;
     }
 }

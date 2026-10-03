@@ -1,5 +1,6 @@
 package com.framework.util;
 
+import com.framework.annotation.ApiJson;
 import com.framework.annotation.UrlMapping;
 import com.framework.annotation.controller;
 
@@ -24,10 +25,12 @@ public class Utilitaire {
                     String httpMethod = annotation.method().toUpperCase();
 
                     UtilMethode cle = new UtilMethode(url, httpMethod);
-                    Mapping valeur = new Mapping(controllerClass, method);
+                    boolean isJson = method.isAnnotationPresent(ApiJson.class);
+                    Mapping valeur = new Mapping(controllerClass, method, isJson);
 
                     urlMapping.put(cle, valeur);
-                    System.out.println("[Framework] Route: [" + httpMethod + "] " + url + " -> " + method.getName());
+                    System.out.println("[Framework] Route: [" + httpMethod + "] " + url + " -> "
+                            + method.getName() + (isJson ? "  (JSON)" : "  (vue)"));
                 }
             }
         }
