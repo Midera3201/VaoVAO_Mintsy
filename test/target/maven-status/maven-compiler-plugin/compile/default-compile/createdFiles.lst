@@ -2,5 +2,6 @@ controller\B.class
 controller\EmpController.class
 controller\A.class
 controller\Employe.class
+controller\EmpApiController.class
 repository\EmpRepository.class
 controller\C.class
