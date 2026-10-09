@@ -75,4 +75,12 @@ public class EmpApiController {
         // La methode renvoie null : c'est le Model qui sera serialise
         return null;
     }
+
+    @ApiJson
+    @UrlMapping(url = "/api/salama", method = "GET")
+    public String test() {
+        
+        return "binjour";
+    }
 }
+    
