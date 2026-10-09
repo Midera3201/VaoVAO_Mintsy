@@ -58,6 +58,12 @@ public class EmpController {
         return "emp/new";
     }
 
+    @UrlMapping(url = "/api-test")
+    public String apiTest(Model model) {
+        model.setAttribute("titre", "Test de la Web API");
+        return "api-test";
+    }
+
     @UrlMapping(url = "/andrana")
     public String andrana(Model model) {
         model.setAttribute("titre", "Page de test");

@@ -29,7 +29,7 @@ public class FrontControllerServlet extends HttpServlet {
 
         // La page d'accueil est un cas particulier : toujours du HTML
         if (pathInfo.equals("/") || pathInfo.isEmpty()) {
-            afficherAccueil(response, urlMapping);
+            afficherAccueil(request, response, urlMapping);
             return;
         }
 
@@ -147,7 +147,8 @@ public class FrontControllerServlet extends HttpServlet {
         return pathInfo.startsWith("/api/") || pathInfo.equals("/api");
     }
 
-    private void afficherAccueil(HttpServletResponse response, HashMap<UtilMethode, Mapping> urlMapping)
+    private void afficherAccueil(HttpServletRequest request, HttpServletResponse response,
+                                 HashMap<UtilMethode, Mapping> urlMapping)
             throws IOException {
 
         response.setContentType("text/html;charset=UTF-8");
@@ -159,14 +160,52 @@ public class FrontControllerServlet extends HttpServlet {
             return;
         }
 
-        out.println("<h2>Routes enregistrees</h2><ul>");
+        out.println("<style>"
+                + "table{border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif;margin:16px 0}"
+                + "th,td{border:1px solid #ccc;padding:8px 14px;text-align:left}"
+                + "th{background:#2c3e50;color:#fff}"
+                + "tr:nth-child(even){background:#f7f9fb}"
+                + ".m{display:inline-block;min-width:58px;font-weight:bold}"
+                + ".get{color:#1a7f37}.post{color:#b5541c}.put{color:#1750ab}.delete{color:#b31d28}"
+                + ".t{font-size:12px;padding:2px 8px;border-radius:10px;white-space:nowrap}"
+                + ".tv{background:#e8eef7;color:#1750ab}.tj{background:#e6f6ec;color:#1a7f37}"
+                + "</style>");
+
+        out.println("<h2>Routes enregistrees</h2>");
+        out.println("<table><tr><th>HTTP</th><th>URL</th><th>Type</th></tr>");
+
+        boolean aUneApi = false;
         for (Map.Entry<UtilMethode, Mapping> entry : urlMapping.entrySet()) {
             UtilMethode cle = entry.getKey();
             boolean json = entry.getValue().isJson();
-            out.println("<li>[" + cle.getHttpMethod() + "] " + cle.getUrl()
-                    + " <code>" + (json ? "JSON" : "vue") + "</code></li>");
+            if (json) {
+                aUneApi = true;
+            }
+
+            String methode = cle.getHttpMethod();
+            String classe = methode.equals("GET") ? "get"
+                    : methode.equals("POST") ? "post"
+                    : methode.equals("PUT") ? "put" : "delete";
+            String context = request.getContextPath();
+
+            out.println("<tr>"
+                    + "<td><span class='m " + classe + "'>" + methode + "</span></td>"
+                    + "<td>" + (methode.equals("GET")
+                            ? "<a href='" + context + cle.getUrl() + "'>" + cle.getUrl() + "</a>"
+                            : "<span>" + cle.getUrl() + "</span>") + "</td>"
+                    + "<td><span class='t " + (json ? "tj'>JSON" : "tv'>vue") + "</span></td>"
+                    + "</tr>");
         }
-        out.println("</ul>");
+        out.println("</table>");
+
+        if (aUneApi) {
+            out.println("<p><a href='" + request.getContextPath() + "/api-test'>"
+                    + "&#9654; Page de test de la Web API (boutons GET / POST)</a></p>");
+        }
+        out.println("<p style='color:#666;font-size:13px'>"
+                + "Les routes GET sont cliquables. "
+                + "Les routes POST ne peuvent pas etre ouvertes dans la barre d'adresse "
+                + "du navigateur : utilise la page de test ci-dessus.</p>");
     }
 
     private Object[] buildMethodArgs(Method method, Model model, HttpServletRequest request, HttpServletResponse response) {
