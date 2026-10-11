@@ -4,6 +4,7 @@ import com.framework.util.JsonUtil;
 import com.framework.util.Mapping;
 import com.framework.util.Model;
 import com.framework.util.ModelAndView;
+import com.framework.util.ParamBinder;
 import com.framework.util.UtilMethode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -208,22 +209,13 @@ public class FrontControllerServlet extends HttpServlet {
                 + "du navigateur : utilise la page de test ci-dessus.</p>");
     }
 
+    /**
+     * Sprint 7 : la construction des arguments est deleguee a ParamBinder.
+     * Celui-ci injecte les objets du framework (Model, requete, reponse...)
+     * et lie les autres parametres aux champs du formulaire par leur nom.
+     */
     private Object[] buildMethodArgs(Method method, Model model, HttpServletRequest request, HttpServletResponse response) {
-        Class<?>[] paramTypes = method.getParameterTypes();
-        if (paramTypes.length == 0) {
-            return new Object[0];
-        }
-        Object[] args = new Object[paramTypes.length];
-        for (int i = 0; i < paramTypes.length; i++) {
-            if (paramTypes[i] == Model.class) {
-                args[i] = model;
-            } else if (paramTypes[i] == HttpServletRequest.class) {
-                args[i] = request;
-            } else if (paramTypes[i] == HttpServletResponse.class) {
-                args[i] = response;
-            }
-        }
-        return args;
+        return ParamBinder.bind(method, model, request, response);
     }
 
     @Override

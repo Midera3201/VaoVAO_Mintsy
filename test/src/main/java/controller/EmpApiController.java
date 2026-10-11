@@ -79,8 +79,22 @@ public class EmpApiController {
     @ApiJson
     @UrlMapping(url = "/api/salama", method = "GET")
     public String test() {
-        
+
         return "binjour";
+    }
+
+    /**
+     * Sprint 7 : le binding par nom fonctionne aussi pour les methodes JSON.
+     * GET /api/binding?nom=Rakoto&age=25
+     */
+    @ApiJson
+    @UrlMapping(url = "/api/binding", method = "GET")
+    public Map<String, Object> binding(String nom, int age, boolean actif) {
+        Map<String, Object> reponse = new LinkedHashMap<>();
+        reponse.put("nom", nom);
+        reponse.put("age", age);
+        reponse.put("actif", actif);
+        return reponse;
     }
 }
     

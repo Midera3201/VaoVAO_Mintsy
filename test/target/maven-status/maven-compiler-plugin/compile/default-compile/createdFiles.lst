@@ -1,7 +1,8 @@
-controller\B.class
-controller\EmpController.class
-controller\A.class
 controller\Employe.class
+controller\BindingController.class
+controller\B.class
 controller\EmpApiController.class
 repository\EmpRepository.class
+controller\EmpController.class
 controller\C.class
+controller\A.class

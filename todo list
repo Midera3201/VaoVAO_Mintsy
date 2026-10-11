@@ -90,3 +90,27 @@ arguments type objet
 exemple : personne na employe na véhicule 
 invoquena le methode 
 raha misy le argument de bouclena de raha misy de alaina le getparameter de jerena raha misy
+
+
+Sprint 7 
+Binding , ilay donnée tonga , donnée avany am vue de alefa any am controller 
+manana formulaire na ajout , ao anaty formulaire de mclique button submit de makany am url 
+methode save (raha employe de mandray argument employe) 
+clique button de makao front servlet (mapafatatra le save , verifie methode mifanaraka)
+verifie parametre 
+mandray parametre emp
+tode fatany le variable ao anaty requete
+ilay tsy objet no atao (string nom, int age ,.....)
+raha misy objet de frose exception, par defaut atao null 
+alaina ny valeur de in apetraka rehefa manao invoque 
+ 
+trotra :
+controller cote dev 
+manana methode save parametre 3 ohatra 
+atao null foana par defaut, alaina isany le argument any le methode de matchena le izy aveo 
+de invoquena de le valeur le izy 
+
+taloha mandefa variable ao anaty view 
+de amzao mandefa variable ao anaty controller (GET na POST)
+de le variabe de type primitif : int,double,char,string
+manambotra controller , de le controller fonction de
