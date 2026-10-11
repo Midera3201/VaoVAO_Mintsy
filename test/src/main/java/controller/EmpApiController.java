@@ -96,5 +96,21 @@ public class EmpApiController {
         reponse.put("actif", actif);
         return reponse;
     }
+
+    /**
+     * Sprint 7 bis : la methode recoit un Employe deja rempli et l'enregistre.
+     * POST /api/employe  avec nom, prenom, email
+     */
+    @ApiJson
+    @UrlMapping(url = "/api/employe", method = "POST")
+    public Map<String, Object> creerObjet(Employe employe) throws Exception {
+        repo.save(employe);
+
+        Map<String, Object> reponse = new LinkedHashMap<>();
+        reponse.put("succes", true);
+        reponse.put("message", "Employe enregistre");
+        reponse.put("employe", employe);
+        return reponse;
+    }
 }
     

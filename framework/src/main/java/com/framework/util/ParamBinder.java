@@ -5,29 +5,42 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Sprint 7 : binding automatique des parametres HTTP.
+ * Binding automatique des arguments d'une methode de controleur.
  *
- * Pour chaque parametre de la methode du controleur, ParamBinder decide :
+ * Sprint 7 : parametres simples.
+ * Sprint 7 bis : objets Java.
+ *
+ * Pour chaque parametre de la methode, ParamBinder decide dans cet ordre :
  *
  *   1. Le type est fourni par le framework (Model, requete, reponse,
- *      session, contexte)   -> le framework injecte l'objet.
- *   2. Sinon                 -> le nom du parametre sert de cle :
- *                              request.getParameter(nom), puis conversion
- *                              vers le type Java attendu.
+ *      session, contexte)        -> injection directe de l'objet.
+ *   2. Tableau de String          -> request.getParameterValues(nom).
+ *   3. Type simple (String, int, double, boolean, char, BigDecimal,
+ *      enum...)                   -> request.getParameter(nom) + conversion.
+ *   4. Type objet instanciable    -> creation de l'objet, puis pour chacun
+ *      de ses attributs, request.getParameter(nomAttribut) + conversion,
+ *      affectation par setter si present, sinon par acces direct au champ.
  *
- * Exemple :
- *   public String save(String nom, int age)
- *   POST nom=Rakoto&age=25
- *      -> nom  = "Rakoto"
- *      -> age  = 25
+ * Exemples :
+ *
+ *   public String save(String nom, int age)          -> Sprint 7
+ *   public String save(Employe employe)              -> Sprint 7 bis
+ *       formulaire nom=Midera&prenom=Naivo
+ *         -> employe.setNom("Midera")
+ *         -> employe.setPrenom("Naivo")
  *
  * Les parametres absents, vides ou non convertibles recoivent la valeur
  * par defaut du type (null, 0, 0.0, false) : aucune exception ne remonte.
@@ -77,26 +90,160 @@ public final class ParamBinder {
                 continue;
             }
 
-            // --- 2. Binding HTTP par nom de parametre ---
             String nom = parametres[i].getName();
-            args[i] = lireValeur(request, nom, type);
+
+            // --- 2. Tableau de chaines (checkbox multiples, multi-select) ---
+            if (type.isArray() && type.getComponentType() == String.class) {
+                args[i] = request.getParameterValues(nom);
+                continue;
+            }
+
+            // --- 3. Type simple : binding par nom (Sprint 7) ---
+            if (estTypeSimple(type)) {
+                args[i] = convertir(request.getParameter(nom), type, nom);
+                continue;
+            }
+
+            // --- 4. Type objet : binding automatique (Sprint 7 bis) ---
+            if (estObjetLiable(type)) {
+                args[i] = lierObjet(request, type, nom);
+                continue;
+            }
+
+            // Type non supporte (collection, interface, classe sans constructeur vide)
+            args[i] = null;
         }
 
         return args;
     }
 
     /**
-     * Lit le parametre HTTP et le convertit vers le type attendu.
+     * Sprint 7 bis : cree une instance de la classe, puis remplit chacun
+     * de ses attributs a partir des parametres de la requete.
+     *
+     * Les attributs absents de la requete sont laisses a leur valeur
+     * par defaut (celle du constructeur).
      */
-    private static Object lireValeur(HttpServletRequest request, String nom, Class<?> type) {
+    private static Object lierObjet(HttpServletRequest request, Class<?> type, String nomParametre) {
 
-        // Tableau de chaînes : cas des cases a cocher multiples ou du multi-select
-        if (type.isArray() && type.getComponentType() == String.class) {
-            return request.getParameterValues(nom);
+        Object instance;
+        try {
+            instance = type.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            System.err.println("[Framework] Binding objet : impossible d'instancier "
+                    + type.getName() + " (" + e.getMessage() + ")");
+            return null;
         }
 
-        String valeur = request.getParameter(nom);
-        return convertir(valeur, type, nom);
+        for (Field field : type.getDeclaredFields()) {
+
+            // On ignore les champs qui ne representent pas une donnee de formulaire
+            if (Modifier.isStatic(field.getModifiers())
+                    || Modifier.isFinal(field.getModifiers())
+                    || field.isSynthetic()) {
+                continue;
+            }
+
+            // Un seul niveau de profondeur : les sous-objets ne sont pas lies ici
+            if (!estTypeSimple(field.getType())) {
+                continue;
+            }
+
+            String valeur = request.getParameter(field.getName());
+
+            // Variante prefixee, pratique quand un formulaire contient
+            // plusieurs objets : employe.nom, employe.prenom, ...
+            if (valeur == null && nomParametre != null) {
+                valeur = request.getParameter(nomParametre + "." + field.getName());
+            }
+
+            // Attribut absent : on ne touche pas a la valeur par defaut
+            if (valeur == null) {
+                continue;
+            }
+
+            Object valeurConvertie = convertir(valeur, field.getType(),
+                    type.getSimpleName() + "." + field.getName());
+
+            affecter(instance, field, valeurConvertie);
+        }
+
+        return instance;
+    }
+
+    /**
+     * Affecte une valeur a un attribut.
+     * Priorite au setter s'il existe (setNom, setAge...), sinon ecriture
+     * directe dans le champ prive via la reflexion.
+     */
+    private static void affecter(Object instance, Field field, Object valeur) {
+
+        String nomSetter = "set" + Character.toUpperCase(field.getName().charAt(0))
+                + field.getName().substring(1);
+
+        try {
+            Method setter = instance.getClass().getMethod(nomSetter, field.getType());
+            setter.invoke(instance, valeur);
+            return;
+        } catch (NoSuchMethodException e) {
+            // Pas de setter : on ecrira directement dans le champ
+        } catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
+            System.err.println("[Framework] Binding objet : setter " + nomSetter
+                    + " en erreur (" + e.getMessage() + ") -> ecriture directe du champ");
+        }
+
+        try {
+            field.setAccessible(true);
+            field.set(instance, valeur);
+        } catch (IllegalAccessException | IllegalArgumentException e) {
+            System.err.println("[Framework] Binding objet : champ " + field.getName()
+                    + " non accessible (" + e.getMessage() + ")");
+        }
+    }
+
+    /**
+     * Un type simple se convertit directement depuis une chaine.
+     * Tout le reste est candidat au binding d'objet.
+     */
+    public static boolean estTypeSimple(Class<?> type) {
+        return (type.isPrimitive() && type != void.class)
+                || type == String.class
+                || type == Boolean.class
+                || type == Character.class
+                || type == Byte.class
+                || type == Short.class
+                || type == Integer.class
+                || type == Long.class
+                || type == Float.class
+                || type == Double.class
+                || Number.class.isAssignableFrom(type)
+                || type.isEnum();
+    }
+
+    /**
+     * Un type peut etre lie comme objet s'il est instanciable et qu'il
+     * represente une donnee metier : ni interface, ni classe abstraite,
+     * ni collection, ni tableau, ni classe du JDK.
+     */
+    public static boolean estObjetLiable(Class<?> type) {
+        if (type.isInterface() || type.isArray()) {
+            return false;
+        }
+        if (Modifier.isAbstract(type.getModifiers())) {
+            return false;
+        }
+        if (Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type)) {
+            return false;
+        }
+        if (type.getName().startsWith("java.")) {
+            return false;
+        }
+        try {
+            type.getDeclaredConstructor();
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
     }
 
     /**
@@ -148,6 +295,9 @@ public final class ParamBinder {
             if (type == BigInteger.class) {
                 return new BigInteger(v);
             }
+            if (type.isEnum()) {
+                return versEnum(v, type);
+            }
         } catch (NumberFormatException e) {
             // Valeur non convertible : on signale et on prend la valeur par defaut
             System.err.println("[Framework] Binding : le parametre '" + nom
@@ -156,8 +306,23 @@ public final class ParamBinder {
             return valeurParDefaut(type);
         }
 
-        // Type non pris en charge par le binding simple (Sprint 7 bis : objets complexes)
+        // Type non pris en charge par le binding
         return valeurParDefaut(type);
+    }
+
+    /**
+     * Recherche la constante d'enum dont le nom correspond a la valeur.
+     * Comparaison insensible a la casse.
+     */
+    private static Object versEnum(String valeur, Class<?> type) {
+        for (Object constante : type.getEnumConstants()) {
+            if (((Enum<?>) constante).name().equalsIgnoreCase(valeur)) {
+                return constante;
+            }
+        }
+        System.err.println("[Framework] Binding : \"" + valeur + "\" ne correspond a aucune constante de "
+                + type.getSimpleName() + " -> null");
+        return null;
     }
 
     /**
