@@ -46,4 +46,25 @@ public class BindingController {
         model.setAttribute("ageAbsent", age == 0);
         return "binding/resultat";
     }
+
+    // ------------------------------------------------------------------
+    // Sprint 7 bis : binding automatique d'un objet Java
+    // ------------------------------------------------------------------
+
+    @UrlMapping(url = "/binding/objet", method = "GET")
+    public String formulaireObjet(Model model) {
+        model.setAttribute("titre", "Sprint 7 bis - Binding d'objet");
+        return "binding/objet";
+    }
+
+    /**
+     * La methode recoit directement un Employe.
+     * Aucun request.getParameter() : le framework cree l'objet et
+     * appelle setNom / setPrenom / setEmail / setId.
+     */
+    @UrlMapping(url = "/binding/objet", method = "POST")
+    public String enregistrerObjet(Model model, Employe employe) {
+        model.setAttribute("employe", employe);
+        return "binding/objet-resultat";
+    }
 }
