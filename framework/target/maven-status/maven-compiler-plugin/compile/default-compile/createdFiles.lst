@@ -1,10 +1,13 @@
+com\framework\util\FileStorageException.class
 com\framework\util\UtilMethode.class
 com\framework\util\ModelAndView.class
 com\framework\util\DatabaseConfig.class
+com\framework\util\MapFile.class
 com\framework\util\Utilitaire.class
 com\framework\FrontControllerServlet.class
 com\framework\listener\ApplicationListener.class
 com\framework\util\Repository.class
+com\framework\util\FileStorage.class
 com\framework\util\ParamBinder.class
 com\framework\util\Mapping.class
 com\framework\annotation\ApiJson.class

@@ -7,6 +7,7 @@ import com.framework.util.ModelAndView;
 import com.framework.util.ParamBinder;
 import com.framework.util.UtilMethode;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,6 +18,28 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Front controller du framework.
+ *
+ * @MultipartConfig rend possible la reception des fichiers envoyes par un
+ * formulaire avec enctype="multipart/form-data" (Sprint 8) : sans cette
+ * annotation, request.getPart() leve une ServletException.
+ *
+ * Ces valeurs sont des valeurs par defaut. Une application peut les
+ * redefinir dans son web.xml, la configuration du descripteur prenant
+ * le dessus sur l'annotation :
+ *
+ *   <multipart-config>
+ *       <max-file-size>10485760</max-file-size>       (10 Mo par fichier)
+ *       <max-request-size>26214400</max-request-size> (25 Mo au total)
+ *       <file-size-threshold>1048576</file-size-threshold>
+ *   </multipart-config>
+ */
+@MultipartConfig(
+        maxFileSize = 10L * 1024 * 1024,
+        maxRequestSize = 25L * 1024 * 1024,
+        fileSizeThreshold = 1024 * 1024
+)
 public class FrontControllerServlet extends HttpServlet {
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
@@ -54,6 +77,13 @@ public class FrontControllerServlet extends HttpServlet {
             Object instance = mapping.getControllerClass().getDeclaredConstructor().newInstance();
             Method method = mapping.getMethod();
 
+            // Sprint 8 : si le corps multipart est inexploitable (fichier trop
+            // gros), on s'arrete ici avec un message clair plutot que d'invoquer
+            // le controleur avec des arguments tous vides.
+            if (!multipartAnalysable(request, response, mapping)) {
+                return;
+            }
+
             Model model = new Model();
             Object[] args = buildMethodArgs(method, model, request, response);
             Object resultat = method.invoke(instance, args);
@@ -80,6 +110,49 @@ public class FrontControllerServlet extends HttpServlet {
             } else {
                 throw new ServletException("Erreur lors de l'invocation de la methode " + mapping.getMethod().getName(), e);
             }
+        }
+    }
+
+    /**
+     * Sprint 8 : verifie que le corps multipart est analysable AVANT d'invoquer
+     * le controleur.
+     *
+     * Des qu'un fichier depasse max-file-size, ou que le total depasse
+     * max-request-size, le conteneur refuse la requete. Dans ce cas les
+     * fichiers mais AUSSI tous les champs texte deviennent indisponibles :
+     * sans ce controle, le controleur recevrait un Employe vide et
+     * afficherait un message trompeur. On rend donc une erreur explicite.
+     *
+     * @return false si la requete a ete rejetee (l'erreur a deja ete ecrite)
+     */
+    private boolean multipartAnalysable(HttpServletRequest request, HttpServletResponse response,
+                                        Mapping mapping) throws IOException {
+
+        if (!ParamBinder.estMultipart(request)) {
+            return true;
+        }
+
+        try {
+            // Force l'analyse du corps : c'est ici que les depassements
+            // de taille sont detectes par le conteneur.
+            request.getParts();
+            return true;
+
+        } catch (Exception e) {
+            String message = "Fichier refuse par le conteneur : un fichier depasse "
+                    + "la taille maximale autorisee, ou la requete est trop volumineuse"
+                    + (e.getMessage() != null ? " (" + e.getMessage() + ")" : "")
+                    + ". Limites configurables dans web.xml (<multipart-config>).";
+
+            ParamBinder.signaler(request, "Requete multipart rejetee sur " + request.getRequestURI()
+                    + " -> " + message);
+
+            if (mapping.isJson()) {
+                ecrireErreurJson(response, HttpServletResponse.SC_BAD_REQUEST, message);
+            } else {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, message);
+            }
+            return false;
         }
     }
 
