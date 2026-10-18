@@ -45,6 +45,15 @@
     <servlet>
         <servlet-name>FrontControllerServlet</servlet-name>
         <servlet-class>com.framework.FrontControllerServlet</servlet-class>
+
+        <!-- Sprint 8 : reception des fichiers (multipart/form-data).
+             Cette configuration prend le dessus sur l'annotation
+             @MultipartConfig du servlet. Tailles en octets. -->
+        <multipart-config>
+            <max-file-size>10485760</max-file-size>       <!-- 10 Mo par fichier -->
+            <max-request-size>26214400</max-request-size> <!-- 25 Mo par formulaire -->
+            <file-size-threshold>1048576</file-size-threshold> <!-- 1 Mo avant ecriture sur disque -->
+        </multipart-config>
     </servlet>
 
     <!-- Le Front Controller intercepte les requetes (sauf JSP et ressources statiques) -->

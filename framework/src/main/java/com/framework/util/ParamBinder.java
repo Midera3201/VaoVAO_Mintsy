@@ -4,7 +4,10 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -15,6 +18,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -22,6 +26,7 @@ import java.util.Map;
  *
  * Sprint 7 : parametres simples.
  * Sprint 7 bis : objets Java.
+ * Sprint 8 : fichiers (MapFile).
  *
  * Pour chaque parametre de la methode, ParamBinder decide dans cet ordre :
  *
@@ -30,7 +35,9 @@ import java.util.Map;
  *   2. Tableau de String          -> request.getParameterValues(nom).
  *   3. Type simple (String, int, double, boolean, char, BigDecimal,
  *      enum...)                   -> request.getParameter(nom) + conversion.
- *   4. Type objet instanciable    -> creation de l'objet, puis pour chacun
+ *   4. Type MapFile               -> request.getPart(nom) : le fichier est
+ *      lu en binaire et enveloppe dans un MapFile (Sprint 8).
+ *   5. Type objet instanciable    -> creation de l'objet, puis pour chacun
  *      de ses attributs, request.getParameter(nomAttribut) + conversion,
  *      affectation par setter si present, sinon par acces direct au champ.
  *
@@ -41,6 +48,11 @@ import java.util.Map;
  *       formulaire nom=Midera&prenom=Naivo
  *         -> employe.setNom("Midera")
  *         -> employe.setPrenom("Naivo")
+ *   public String save(Employe employe, MapFile rectoCIN, MapFile versoCIN)
+ *                                                      -> Sprint 8
+ *       formulaire multipart avec deux <input type="file">
+ *         -> employe rempli par les champs texte
+ *         -> rectoCIN et versoCIN construits depuis request.getPart(...)
  *
  * Les parametres absents, vides ou non convertibles recoivent la valeur
  * par defaut du type (null, 0, 0.0, false) : aucune exception ne remonte.
@@ -104,7 +116,16 @@ public final class ParamBinder {
                 continue;
             }
 
-            // --- 4. Type objet : binding automatique (Sprint 7 bis) ---
+            // --- 4. Champ fichier (Sprint 8) ---
+            // AVANT estObjetLiable : MapFile possede un constructeur vide et
+            // n'est pas une classe du JDK, il serait sinon pris a tort pour
+            // un objet a remplir depuis des champs texte.
+            if (type == MapFile.class) {
+                args[i] = lireFichier(request, nom);
+                continue;
+            }
+
+            // --- 5. Type objet : binding automatique (Sprint 7 bis) ---
             if (estObjetLiable(type)) {
                 args[i] = lierObjet(request, type, nom);
                 continue;
@@ -115,6 +136,93 @@ public final class ParamBinder {
         }
 
         return args;
+    }
+
+    /**
+     * Sprint 8 : construit un MapFile a partir du part multipart du meme
+     * nom que le parametre.
+     *
+     * Retourne null (sans lever d'exception) et trace un message explicite
+     * dans les logs si la requete n'est pas multipart, si le champ n'existe
+     * pas, si le navigateur n'a rien choisi, ou si la lecture echoue.
+     */
+    private static MapFile lireFichier(HttpServletRequest request, String nom) {
+
+        if (!estMultipart(request)) {
+            signaler(request, "Upload : la requete n'est pas multipart/form-data, "
+                    + "le parametre '" + nom + "' (MapFile) sera null. "
+                    + "Ajoute enctype=\"multipart/form-data\" au formulaire.");
+            return null;
+        }
+
+        Part part;
+        try {
+            part = request.getPart(nom);
+        } catch (Exception e) {
+            // couvre notamment IOException quand le fichier depasse maxFileSize
+            signaler(request, "Upload : lecture du champ '" + nom
+                    + "' impossible (" + e.getClass().getSimpleName()
+                    + (e.getMessage() != null ? " : " + e.getMessage() : "") + ")");
+            return null;
+        }
+
+        if (part == null) {
+            signaler(request, "Upload : aucun champ nomme '" + nom + "' dans le formulaire.");
+            return null;
+        }
+
+        String nomSoumis = part.getSubmittedFileName();
+
+        // Le champ existe mais aucun fichier n'a ete selectionne
+        if (nomSoumis == null || nomSoumis.isBlank()) {
+            signaler(request, "Upload : aucun fichier selectionne pour le champ '" + nom + "'.");
+            return null;
+        }
+
+        try (InputStream in = part.getInputStream()) {
+            byte[] contenu = in.readAllBytes();
+
+            if (contenu.length == 0) {
+                signaler(request, "Upload : fichier vide pour le champ '"
+                        + nom + "' (nom soumis : " + nomSoumis + ").");
+            }
+
+            return new MapFile(nomSoumis, part.getContentType(), contenu);
+
+        } catch (IOException e) {
+            signaler(request, "Upload : lecture du contenu du champ '" + nom
+                    + "' impossible (" + e.getMessage() + ")");
+            return null;
+        }
+    }
+
+    /**
+     * Trace un diagnostic du framework.
+     *
+     * On passe par ServletContext.log() et non System.err : sous Windows le
+     * stderr de Tomcat part dans la console et n'est pas conserve. Avec log(),
+     * le message se retrouve dans %CATALINA_HOME%\logs\localhost.<date>.log,
+     * donc reellement consultable pendant les tests.
+     */
+    public static void signaler(HttpServletRequest request, String message) {
+        String ligne = "[Framework] " + message;
+        ServletContext contexte = request != null ? request.getServletContext() : null;
+        if (contexte != null) {
+            contexte.log(ligne);
+        } else {
+            System.err.println(ligne);
+        }
+    }
+
+    /**
+     * Une requete est multipart si son Content-Type commence par
+     * multipart/form-data. Sans cette verification, request.getPart()
+     * leve IllegalStateException.
+     */
+    public static boolean estMultipart(HttpServletRequest request) {
+        String contentType = request.getContentType();
+        return contentType != null
+                && contentType.toLowerCase(Locale.ROOT).startsWith("multipart/form-data");
     }
 
     /**
@@ -130,7 +238,7 @@ public final class ParamBinder {
         try {
             instance = type.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            System.err.println("[Framework] Binding objet : impossible d'instancier "
+            signaler(request, "Binding objet : impossible d'instancier "
                     + type.getName() + " (" + e.getMessage() + ")");
             return null;
         }
@@ -227,6 +335,10 @@ public final class ParamBinder {
      */
     public static boolean estObjetLiable(Class<?> type) {
         if (type.isInterface() || type.isArray()) {
+            return false;
+        }
+        // Fichiers geres par lireFichier(), pas par le binding d'objets
+        if (type == MapFile.class) {
             return false;
         }
         if (Modifier.isAbstract(type.getModifiers())) {
