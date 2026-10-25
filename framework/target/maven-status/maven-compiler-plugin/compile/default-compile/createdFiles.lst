@@ -2,6 +2,7 @@ com\framework\util\FileStorageException.class
 com\framework\util\UtilMethode.class
 com\framework\util\ModelAndView.class
 com\framework\util\DatabaseConfig.class
+com\framework\annotation\RolesAutorises.class
 com\framework\util\MapFile.class
 com\framework\util\Utilitaire.class
 com\framework\FrontControllerServlet.class

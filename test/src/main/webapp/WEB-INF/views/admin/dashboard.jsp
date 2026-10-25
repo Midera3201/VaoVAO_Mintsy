@@ -98,6 +98,11 @@
 <fieldset>
     <legend>Tester le refus automatique</legend>
     <p>
+        <a class="bouton" href="<%= ctx %>/admin/utilisateurs">Gestion utilisateurs (ADMIN)</a>
+        <a class="bouton" href="<%= ctx %>/mon-espace">Mon espace (USER)</a>
+        <a class="bouton" href="<%= ctx %>/espace-partage">Espace partage (ADMIN + USER)</a>
+    </p>
+    <p>
         <a class="bouton" href="<%= ctx %>/api/admin" target="_blank">API protegee (JSON)</a>
         <a class="bouton" href="<%= ctx %>/session/profil">Profil de session</a>
         <a class="bouton" href="<%= ctx %>/session">Accueil session</a>
@@ -105,6 +110,8 @@
     <p style="font-size:13px;color:#666;">
         Apres deconnexion, <code>/admin</code> redirige vers <code>/session</code>
         et <code>/api/admin</code> renvoie <code>401</code> avec un JSON d'erreur.
+        Avec un role non autorise, les routes du Sprint 10 bis renvoient
+        <code>403</code>.
     </p>
     <form method="post" action="<%= ctx %>/session/deconnexion" style="display:inline;">
         <button type="submit" class="danger">Se deconnecter puis tester /admin</button>
