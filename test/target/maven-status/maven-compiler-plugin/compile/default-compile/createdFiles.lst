@@ -6,4 +6,6 @@ controller\EmpApiController.class
 repository\EmpRepository.class
 controller\EmpController.class
 controller\C.class
+controller\SessionUtilisateur.class
+controller\SessionController.class
 controller\A.class

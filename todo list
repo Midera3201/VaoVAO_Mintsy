@@ -121,3 +121,48 @@ rehefa action c est une methode de controller
 on a un instance employee
 manana modele employee recto verso
 micreer classe type file attribut nom tableau labets 
+
+
+
+
+Sprint 8 : 
+input type file 
+rehefa tong any anaty serveur de misy type hoe file ve ? 
+misy fichier misy file tonga ao 
+manao formulaire de le actions any le formumaire zany makany 
+formulaire ajout methode save 
+mitontona ao am save de manana instance de atreo loaa
+
+raha amny champ anah formulaire misy type file 
+mila tonga ao anaty champ
+stockena any anaty serveur ve sa base de donnée 
+aona ny atongavany ao am type d'actions any zany 
+
+mandray parametre 
+
+manamboatra objet (okey)
+traitement anah file 
+ao anaty objet employe mandray CIN type byte => de bindena 
+manana class employe model employe nom , .... 
+employe scan cin ohatra  => type tableau byte
+asiana map no mety ao anaty objet 
+
+micreer class de le classe tsika no atao type any  => mapfile attribut filename ,...  de le tableau anah byte 
+ohatra andefa any le recto any le zavatra de instancena aty amny frameword , recto cin ao anaty input rectoCIN type file
+raha misy type rectoCIN misy amny parametre de micreer instance anah mapfile de azo alohany request de alaiko ny anarany aveo
+
+
+Sprint-9
+ataov ho tong ilay session utilisateur 
+objectifs: eo am methode controlleur mila autoriser refa mampiasa azy
+manana role admin
+Creation
+Aona no ho tong lay session disponible ao methode d'action
+
+
+
+Sprint-10
+misy methode d action ny controller anaty developpeur zany ts maints connecte vo afak m executer anazy 
+tsy maints connecter ts maints authentifier ilay olon
+
+bis:ts maints manan specifique 
