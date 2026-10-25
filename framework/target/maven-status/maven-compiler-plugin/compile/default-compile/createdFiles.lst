@@ -8,8 +8,10 @@ com\framework\FrontControllerServlet.class
 com\framework\listener\ApplicationListener.class
 com\framework\util\Session.class
 com\framework\util\Repository.class
+com\framework\util\Authentification.class
 com\framework\util\FileStorage.class
 com\framework\util\ParamBinder.class
+com\framework\annotation\AuthentificationRequise.class
 com\framework\util\Mapping.class
 com\framework\annotation\ApiJson.class
 com\framework\util\JsonUtil.class

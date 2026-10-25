@@ -1,11 +1,12 @@
-controller\Employe.class
-controller\BindingController.class
+controller\AdminController.class
 controller\B.class
 controller\UploadController.class
+controller\EmpController.class
+controller\SessionUtilisateur.class
+controller\A.class
+controller\Employe.class
+controller\BindingController.class
 controller\EmpApiController.class
 repository\EmpRepository.class
-controller\EmpController.class
 controller\C.class
-controller\SessionUtilisateur.class
 controller\SessionController.class
-controller\A.class
