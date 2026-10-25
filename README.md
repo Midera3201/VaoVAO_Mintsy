@@ -104,3 +104,81 @@ L'application de test expose :
 - `GET  /session/compteur` : compteur conserve entre les requetes ;
 - `POST /session/deconnexion` : `invalidate()` ;
 - `GET  /api/session` : etat de la session en JSON.
+
+## Sprint 10 : verification de l'authentification
+
+L'annotation `@AuthentificationRequise` protege une methode d'action. Le
+front controller verifie l'authentification **avant** d'instancier le
+controleur ou d'invoquer la methode.
+
+```java
+import com.framework.annotation.AuthentificationRequise;
+import com.framework.util.Model;
+import com.framework.util.Session;
+
+@AuthentificationRequise
+@UrlMapping(url = "/admin", method = "GET")
+public String dashboard(Model model, Session session) {
+    return "admin/dashboard";
+}
+```
+
+### Configuration
+
+Dans `web.xml` :
+
+```xml
+<context-param>
+    <param-name>auth.sessionAttribute</param-name>
+    <param-value>utilisateur</param-value>
+</context-param>
+
+<!-- Optionnel : redirection au lieu d'une erreur 401 -->
+<context-param>
+    <param-name>auth.loginUrl</param-name>
+    <param-value>/session</param-value>
+</context-param>
+```
+
+- `auth.sessionAttribute` : nom de la variable de session qui indique qu'un
+  utilisateur est authentifie. Par defaut : `utilisateur`.
+- `auth.loginUrl` : page de connexion. Si elle est configuree, une requete HTML
+  refusee est redirigee vers cette page ; sinon le framework renvoie `401`.
+
+Une methode peut aussi utiliser un autre nom d'attribut :
+
+```java
+@AuthentificationRequise(attribut = "membre")
+```
+
+### Valeurs considerees comme authentifiees
+
+| Valeur en session | Resultat |
+|---|---|
+| attribut absent ou `null` | refuse |
+| chaine vide ou composee d'espaces | refuse |
+| `false` | refuse |
+| `true` | autorise |
+| chaine non vide (`"Midera"`, id utilisateur...) | autorise |
+
+### Reponse en cas de refus
+
+- Methode `@ApiJson` : statut **401** et JSON
+  `{"erreur":"Authentification requise..."}`.
+- Methode HTML avec `auth.loginUrl` : redirection **302** vers la page de
+  connexion.
+- Methode HTML sans `auth.loginUrl` : erreur HTTP **401**.
+
+### Demonstration
+
+- `GET  /admin` : page protegee, redirige vers `/session` si non connecte ;
+- `POST /admin/action` : action protegee avec compteur d'executions ;
+- `GET  /api/admin` : API protegee, renvoie 401 en JSON si non connecte.
+
+Toute personne authentifiee peut ouvrir `/admin` : ce sprint controle
+l'authentification, pas les droits lies au role. Le role est seulement affiche
+a titre informatif.
+
+Scenario de test : ouvrir `/admin` sans session (refus), se connecter via
+`/session`, puis rouvrir `/admin` (acces autorise).
+

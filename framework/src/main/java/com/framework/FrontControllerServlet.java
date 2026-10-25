@@ -1,5 +1,6 @@
 package com.framework;
 
+import com.framework.util.Authentification;
 import com.framework.util.JsonUtil;
 import com.framework.util.Mapping;
 import com.framework.util.Model;
@@ -34,6 +35,10 @@ import java.util.Map;
  *       <max-request-size>26214400</max-request-size> (25 Mo au total)
  *       <file-size-threshold>1048576</file-size-threshold>
  *   </multipart-config>
+ *
+ * Sprint 10 : avant d'invoquer une methode annotee
+ * {@code @AuthentificationRequise}, le front controller verifie qu'un
+ * utilisateur est authentifie (voir Authentification et ParamBinder).
  */
 @MultipartConfig(
         maxFileSize = 10L * 1024 * 1024,
@@ -70,6 +75,13 @@ public class FrontControllerServlet extends HttpServlet {
                         "Aucune methode trouvee pour l'URL '" + pathInfo
                                 + "' avec la methode HTTP " + httpMethod);
             }
+            return;
+        }
+
+        // Sprint 10 : la methode est-elle annotee @AuthentificationRequise ?
+        // Le controle a lieu AVANT toute instanciation du controleur, analyse
+        // du corps multipart ou invocation de la methode d'action.
+        if (!verifierAuthentification(request, response, mapping)) {
             return;
         }
 
@@ -111,6 +123,55 @@ public class FrontControllerServlet extends HttpServlet {
                 throw new ServletException("Erreur lors de l'invocation de la methode " + mapping.getMethod().getName(), e);
             }
         }
+    }
+
+    /**
+     * Sprint 10 : verifie l'authentification d'une methode protegee.
+     *
+     * Le nom de l'attribut de session est lu dans la configuration du
+     * framework (auth.sessionAttribute), ou dans l'annotation si elle
+     * fournit une valeur explicite.
+     *
+     * @return true si la methode peut etre executee ; false si l'acces a
+     *         ete refuse (la reponse a deja ete ecrite ou redirigee)
+     */
+    private boolean verifierAuthentification(HttpServletRequest request,
+                                             HttpServletResponse response,
+                                             Mapping mapping) throws IOException {
+
+        Method method = mapping.getMethod();
+
+        if (Authentification.estAuthentifie(request, method)) {
+            return true;
+        }
+
+        String attribut = Authentification.nomAttribut(request, method);
+
+        ParamBinder.signaler(request, "Sprint 10 : acces refuse a ["
+                + request.getMethod().toUpperCase() + "] " + request.getRequestURI()
+                + " -> " + mapping.getControllerClass().getSimpleName()
+                + "." + method.getName() + "(...) : attribut de session '"
+                + attribut + "' absent, vide ou false");
+
+        String message = Authentification.messageRefus();
+
+        // Web API : le client doit pouvoir traiter le refus en JSON.
+        if (mapping.isJson()) {
+            ecrireErreurJson(response, HttpServletResponse.SC_UNAUTHORIZED, message);
+            return false;
+        }
+
+        // Page HTML : redirection vers la page de connexion si configuree.
+        String loginUrl = Authentification.loginUrl(getServletContext());
+        if (loginUrl != null) {
+            response.sendRedirect(
+                    Authentification.construireUrlConnexion(request, loginUrl));
+            return false;
+        }
+
+        // Sinon, refus explicite en HTTP 401.
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
+        return false;
     }
 
     /**

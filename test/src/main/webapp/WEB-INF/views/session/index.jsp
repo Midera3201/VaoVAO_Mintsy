@@ -98,6 +98,7 @@
         <p>
             <a class="bouton" href="<%= ctx %>/session/profil">Voir le profil et les attributs</a>
             <a class="bouton" href="<%= ctx %>/session/compteur">Compteur de visites</a>
+            <a class="bouton" href="<%= ctx %>/admin">Espace protege (Sprint 10)</a>
         </p>
         <form method="post" action="<%= ctx %>/session/deconnexion" style="display:inline;">
             <button type="submit" class="danger">Se deconnecter (invalidate)</button>

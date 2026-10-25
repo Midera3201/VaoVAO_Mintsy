@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 import java.util.HashMap;
 
+import com.framework.util.Authentification;
 import com.framework.util.DatabaseConfig;
 import com.framework.util.Mapping;
 import com.framework.util.UtilMethode;
@@ -38,6 +39,28 @@ public class ApplicationListener implements ServletContextListener {
                     context.getInitParameter("viewSuffix"));
 
             context.setAttribute("urlMapping", urlMapping);
+
+            // Sprint 10 : configuration de la verification d'authentification.
+            // Le nom de l'attribut de session est configurable dans web.xml ;
+            // "utilisateur" est utilise par defaut.
+            String attributAuth = context.getInitParameter(
+                    Authentification.PARAM_ATTRIBUT_SESSION);
+            if (attributAuth == null || attributAuth.isBlank()) {
+                attributAuth = Authentification.ATTRIBUT_PAR_DEFAUT;
+            }
+            context.setAttribute(Authentification.CONTEXT_ATTRIBUT_SESSION,
+                    attributAuth.trim());
+
+            String loginUrl = context.getInitParameter(Authentification.PARAM_LOGIN_URL);
+            if (loginUrl != null && !loginUrl.isBlank()) {
+                context.setAttribute(Authentification.CONTEXT_LOGIN_URL, loginUrl.trim());
+            }
+
+            System.out.println("[Framework] Authentification : attribut de session = '"
+                    + attributAuth.trim() + "'"
+                    + (loginUrl != null && !loginUrl.isBlank()
+                            ? ", redirection vers " + loginUrl.trim()
+                            : ", refus en HTTP 401"));
 
             String dbDriver = context.getInitParameter("db.driver");
             String dbUrl = context.getInitParameter("db.url");

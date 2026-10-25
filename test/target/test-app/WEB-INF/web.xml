@@ -18,6 +18,21 @@
         <param-value>.jsp</param-value>
     </context-param>
 
+    <!-- Sprint 10 : verification de l'authentification.
+         auth.sessionAttribute est le nom de la variable de session qui
+         indique qu'un utilisateur est connecte. Le framework controle cette
+         variable avant d'executer une methode annotee @AuthentificationRequise.
+         auth.loginUrl est optionnel : si present, un visiteur non connecte
+         est redirige vers cette page au lieu de recevoir une erreur 401. -->
+    <context-param>
+        <param-name>auth.sessionAttribute</param-name>
+        <param-value>utilisateur</param-value>
+    </context-param>
+    <context-param>
+        <param-name>auth.loginUrl</param-name>
+        <param-value>/session</param-value>
+    </context-param>
+
     <!-- Parametres de connexion a la base de donnees -->
     <context-param>
         <param-name>db.driver</param-name>
