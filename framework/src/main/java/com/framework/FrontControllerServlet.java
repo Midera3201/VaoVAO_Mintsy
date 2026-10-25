@@ -85,6 +85,11 @@ public class FrontControllerServlet extends HttpServlet {
             return;
         }
 
+        // Sprint 10 bis : verification des roles autorises.
+        if (!verifierRole(request, response, mapping)) {
+            return;
+        }
+
         try {
             Object instance = mapping.getControllerClass().getDeclaredConstructor().newInstance();
             Method method = mapping.getMethod();
@@ -171,6 +176,48 @@ public class FrontControllerServlet extends HttpServlet {
 
         // Sinon, refus explicite en HTTP 401.
         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
+        return false;
+    }
+
+    /**
+     * Sprint 10 bis : verifie que l'utilisateur possede l'un des roles
+     * demandes par @RolesAutorises sur la methode.
+     *
+     * L'authentification a deja ete controlee juste avant : ici, un refus
+     * signifie que l'utilisateur est connecte mais n'a pas le bon role.
+     * La reponse est alors HTTP 403 (Forbidden), en JSON pour une API.
+     *
+     * @return true si la methode peut etre executee ; false si le role est
+     *         insuffisant (la reponse a deja ete ecrite)
+     */
+    private boolean verifierRole(HttpServletRequest request,
+                                 HttpServletResponse response,
+                                 Mapping mapping) throws IOException {
+
+        Method method = mapping.getMethod();
+
+        if (!Authentification.estRoleRequis(method)
+                || Authentification.aUnRoleAutorise(request, method)) {
+            return true;
+        }
+
+        String rolesRequis = String.join(", ", Authentification.rolesAutorises(method));
+        String rolesUtilisateur = String.join(", ", Authentification.rolesUtilisateur(request));
+
+        ParamBinder.signaler(request, "Sprint 10 bis : acces refuse a ["
+                + request.getMethod().toUpperCase() + "] " + request.getRequestURI()
+                + " -> " + mapping.getControllerClass().getSimpleName()
+                + "." + method.getName() + "(...) : roles requis [" + rolesRequis
+                + "] / roles de l'utilisateur ["
+                + (rolesUtilisateur.isBlank() ? "aucun" : rolesUtilisateur) + "]");
+
+        String message = Authentification.messageRoleRefus();
+
+        if (mapping.isJson()) {
+            ecrireErreurJson(response, HttpServletResponse.SC_FORBIDDEN, message);
+        } else {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, message);
+        }
         return false;
     }
 

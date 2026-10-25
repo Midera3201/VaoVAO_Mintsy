@@ -29,6 +29,10 @@
         <param-value>utilisateur</param-value>
     </context-param>
     <context-param>
+        <param-name>auth.roleAttribute</param-name>
+        <param-value>role</param-value>
+    </context-param>
+    <context-param>
         <param-name>auth.loginUrl</param-name>
         <param-value>/session</param-value>
     </context-param>

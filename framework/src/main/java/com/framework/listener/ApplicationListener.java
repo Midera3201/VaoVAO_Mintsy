@@ -51,13 +51,22 @@ public class ApplicationListener implements ServletContextListener {
             context.setAttribute(Authentification.CONTEXT_ATTRIBUT_SESSION,
                     attributAuth.trim());
 
+            String attributRole = context.getInitParameter(
+                    Authentification.PARAM_ATTRIBUT_ROLE);
+            if (attributRole == null || attributRole.isBlank()) {
+                attributRole = Authentification.ATTRIBUT_ROLE_PAR_DEFAUT;
+            }
+            context.setAttribute(Authentification.CONTEXT_ATTRIBUT_ROLE,
+                    attributRole.trim());
+
             String loginUrl = context.getInitParameter(Authentification.PARAM_LOGIN_URL);
             if (loginUrl != null && !loginUrl.isBlank()) {
                 context.setAttribute(Authentification.CONTEXT_LOGIN_URL, loginUrl.trim());
             }
 
             System.out.println("[Framework] Authentification : attribut de session = '"
-                    + attributAuth.trim() + "'"
+                    + attributAuth.trim() + "', attribut de role = '"
+                    + attributRole.trim() + "'"
                     + (loginUrl != null && !loginUrl.isBlank()
                             ? ", redirection vers " + loginUrl.trim()
                             : ", refus en HTTP 401"));
