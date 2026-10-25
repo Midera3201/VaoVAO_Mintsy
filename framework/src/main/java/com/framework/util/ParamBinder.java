@@ -27,11 +27,12 @@ import java.util.Map;
  * Sprint 7 : parametres simples.
  * Sprint 7 bis : objets Java.
  * Sprint 8 : fichiers (MapFile).
+ * Sprint 9 : session utilisateur (Session).
  *
  * Pour chaque parametre de la methode, ParamBinder decide dans cet ordre :
  *
  *   1. Le type est fourni par le framework (Model, requete, reponse,
- *      session, contexte)        -> injection directe de l'objet.
+ *      HttpSession, Session, contexte) -> injection directe de l'objet.
  *   2. Tableau de String          -> request.getParameterValues(nom).
  *   3. Type simple (String, int, double, boolean, char, BigDecimal,
  *      enum...)                   -> request.getParameter(nom) + conversion.
@@ -53,6 +54,9 @@ import java.util.Map;
  *       formulaire multipart avec deux <input type="file">
  *         -> employe rempli par les champs texte
  *         -> rectoCIN et versoCIN construits depuis request.getPart(...)
+ *   public String profil(Session session)             -> Sprint 9
+ *       -> session enveloppe la HttpSession de l'utilisateur
+ *       -> session.getAttribute("nom") / setAttribute(...) / removeAttribute(...)
  *
  * Les parametres absents, vides ou non convertibles recoivent la valeur
  * par defaut du type (null, 0, 0.0, false) : aucune exception ne remonte.
@@ -97,6 +101,14 @@ public final class ParamBinder {
                 args[i] = request.getSession();
                 continue;
             }
+            // --- Sprint 9 : session du framework (ou sous-classe personnalisee) ---
+            // HttpSession reste disponible pour les developpeurs qui ont
+            // besoin de l'API Servlet brute, mais Session est l'interface
+            // recommandee : elle conserve les donnees entre les requetes.
+            if (Session.class.isAssignableFrom(type)) {
+                args[i] = creerSession(type, request);
+                continue;
+            }
             if (type == ServletContext.class) {
                 args[i] = request.getServletContext();
                 continue;
@@ -136,6 +148,47 @@ public final class ParamBinder {
         }
 
         return args;
+    }
+
+    /**
+     * Sprint 9 : construit l'objet Session injecte dans le controleur.
+     *
+     * request.getSession() retourne la session existante de l'utilisateur
+     * (identifiee par le cookie JSESSIONID) ou en cree une nouvelle. Les
+     * donnees ecrites par le controleur restent donc disponibles lors des
+     * requetes suivantes du meme navigateur.
+     *
+     * Si le parametre est une sous-classe de Session (SessionUtilisateur
+     * par exemple), on l'instancie par reflexion : elle doit exposer un
+     * constructeur public acceptant HttpSession.
+     *
+     * @return l'objet Session, ou null si la sous-classe ne peut pas etre creee
+     */
+    private static Object creerSession(Class<?> type, HttpServletRequest request) {
+
+        HttpSession httpSession = request.getSession();
+
+        if (type == Session.class) {
+            return new Session(httpSession);
+        }
+
+        try {
+            return type.getConstructor(HttpSession.class).newInstance(httpSession);
+
+        } catch (NoSuchMethodException e) {
+            signaler(request, "Session : la classe " + type.getName()
+                    + " doit posseder un constructeur public (" + HttpSession.class.getSimpleName()
+                    + "). Parametre laisse a null.");
+
+        } catch (ReflectiveOperationException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            signaler(request, "Session : impossible d'instancier " + type.getName()
+                    + " (" + cause.getClass().getSimpleName()
+                    + (cause.getMessage() != null ? " : " + cause.getMessage() : "")
+                    + "). Parametre laisse a null.");
+        }
+
+        return null;
     }
 
     /**
@@ -479,6 +532,9 @@ public final class ParamBinder {
                 .filter(p -> p.getType() != Model.class)
                 .filter(p -> p.getType() != HttpServletRequest.class)
                 .filter(p -> p.getType() != HttpServletResponse.class)
+                .filter(p -> p.getType() != HttpSession.class)
+                .filter(p -> p.getType() != ServletContext.class)
+                .filter(p -> !Session.class.isAssignableFrom(p.getType()))
                 .toList();
 
         if (!sansNom.isEmpty()) {

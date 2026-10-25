@@ -3,7 +3,11 @@ package com.framework.util;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.time.Instant;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalAmount;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Map;
 
 /**
@@ -15,6 +19,7 @@ import java.util.Map;
  *   null                      -> null
  *   String, Character, Enum   -> "texte"
  *   Boolean, Number           -> valeur brute
+ *   Date, java.time           -> "date ISO-8601"
  *   Collection, tableau []    -> [ ... ]
  *   Map                       -> { "cle": valeur, ... }
  *   objet                     -> { "champ": valeur, ... }
@@ -48,6 +53,11 @@ public final class JsonUtil {
             writeString(sb, ((Enum<?>) value).name());
         } else if (value instanceof Boolean || value instanceof Number) {
             sb.append(value.toString());
+        } else if (value instanceof Date) {
+            // Format stable et independant de la locale du serveur
+            writeString(sb, Instant.ofEpochMilli(((Date) value).getTime()).toString());
+        } else if (value instanceof TemporalAccessor || value instanceof TemporalAmount) {
+            writeString(sb, value.toString());
         } else if (value instanceof Collection<?>) {
             writeCollection(sb, (Collection<?>) value, depth);
         } else if (value.getClass().isArray()) {
@@ -120,8 +130,9 @@ public final class JsonUtil {
                     writeString(sb, field.getName());
                     sb.append(':');
                     write(sb, valeur, depth + 1);
-                } catch (IllegalAccessException e) {
-                    // champ inaccessible : on l'ignore plutot que d'echouer
+                } catch (IllegalAccessException | RuntimeException e) {
+                    // Champ inaccessible (ex: module JDK non ouvert) :
+                    // on l'ignore plutot que de faire echouer toute la reponse.
                 }
             }
         }

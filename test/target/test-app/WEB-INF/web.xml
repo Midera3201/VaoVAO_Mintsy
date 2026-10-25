@@ -36,6 +36,17 @@
         <param-value>midera</param-value>
     </context-param>
 
+    <!-- Sprint 9 : duree de vie de la session utilisateur.
+         Le conteneur conserve les donnees de chaque session pendant
+         30 minutes d'inactivite, puis les detruit automatiquement. -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+        <cookie-config>
+            <http-only>true</http-only>
+        </cookie-config>
+        <tracking-mode>COOKIE</tracking-mode>
+    </session-config>
+
     <!-- Initialisation du framework au demarrage -->
     <listener>
         <listener-class>com.framework.listener.ApplicationListener</listener-class>
