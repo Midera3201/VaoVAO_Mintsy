@@ -136,8 +136,8 @@
         <p>
             <label for="role">Role</label>
             <select id="role" name="role">
-                <option value="utilisateur" <%= "utilisateur".equals(role) ? "selected" : "" %>>utilisateur</option>
-                <option value="admin" <%= "admin".equals(role) ? "selected" : "" %>>admin</option>
+                <option value="USER" <%= "USER".equalsIgnoreCase(role) ? "selected" : "" %>>USER (utilisateur)</option>
+                <option value="ADMIN" <%= "ADMIN".equalsIgnoreCase(role) ? "selected" : "" %>>ADMIN</option>
             </select>
         </p>
         <button type="submit">Modifier la session</button>
@@ -148,6 +148,7 @@
     <legend>Navigation</legend>
     <p>
         <a class="bouton" href="<%= ctx %>/session/compteur">Compteur de visites</a>
+        <a class="bouton" href="<%= ctx %>/admin">Espace protege (Sprint 10)</a>
         <a class="bouton" href="<%= ctx %>/session">Accueil session</a>
     </p>
     <form method="post" action="<%= ctx %>/session/deconnexion" style="display:inline;">
