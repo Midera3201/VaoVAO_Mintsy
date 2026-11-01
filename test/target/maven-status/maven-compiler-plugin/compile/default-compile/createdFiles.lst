@@ -1,3 +1,4 @@
+controller\AdminController.class
 controller\SingletonController.class
 controller\B.class
 controller\UploadController.class
@@ -8,5 +9,6 @@ controller\Employe.class
 controller\BindingController.class
 controller\EmpApiController.class
 repository\EmpRepository.class
+controller\RoleController.class
 controller\C.class
 controller\SessionController.class
