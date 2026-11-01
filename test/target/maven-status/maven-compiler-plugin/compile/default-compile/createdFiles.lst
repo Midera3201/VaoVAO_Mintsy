@@ -1,4 +1,5 @@
 controller\AdminController.class
+controller\SingletonController.class
 controller\B.class
 controller\UploadController.class
 controller\EmpController.class

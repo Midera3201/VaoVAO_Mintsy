@@ -17,5 +17,6 @@ com\framework\util\Mapping.class
 com\framework\annotation\ApiJson.class
 com\framework\util\JsonUtil.class
 com\framework\annotation\UrlMapping.class
+com\framework\util\ControllerRegistry.class
 com\framework\util\Model.class
 com\framework\annotation\controller.class

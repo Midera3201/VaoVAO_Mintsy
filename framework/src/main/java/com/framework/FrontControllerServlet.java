@@ -1,6 +1,7 @@
 package com.framework;
 
 import com.framework.util.Authentification;
+import com.framework.util.ControllerRegistry;
 import com.framework.util.JsonUtil;
 import com.framework.util.Mapping;
 import com.framework.util.Model;
@@ -91,7 +92,11 @@ public class FrontControllerServlet extends HttpServlet {
         }
 
         try {
-            Object instance = mapping.getControllerClass().getDeclaredConstructor().newInstance();
+            // Sprint 11 : recuperation de l'instance unique creee au demarrage.
+            // Aucune nouvelle instance n'est creee pour les requetes suivantes,
+            // meme si plusieurs methodes du meme controleur sont appelees.
+            Object instance = ControllerRegistry.getInstance(
+                    getServletContext(), mapping.getControllerClass());
             Method method = mapping.getMethod();
 
             // Sprint 8 : si le corps multipart est inexploitable (fichier trop

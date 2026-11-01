@@ -254,3 +254,80 @@ Scenario de test :
 3. `/espace-partage` fonctionne avec les deux roles.
 
 
+
+## Sprint 11 : instance unique des controleurs
+
+Avant le Sprint 11, `FrontControllerServlet` creait une nouvelle instance du
+controleur a chaque requete. Desormais, chaque classe annotee `@controller`
+est instanciee **une seule fois**, au demarrage de l'application, puis la meme
+instance est reutilisee pour toutes les requetes et toutes les methodes de ce
+controleur.
+
+```java
+@controller
+public class EtudiantController {
+
+    // Une seule instance pour toute l'application
+    public EtudiantController() {
+        System.out.println("EtudiantController cree");
+    }
+
+    @UrlMapping(url = "/etudiants", method = "GET")
+    public String liste(Model model) {
+        // ...
+        return "etudiant/liste";
+    }
+
+    @UrlMapping(url = "/etudiants/detail", method = "GET")
+    public String detail(Model model) {
+        // ...
+        return "etudiant/detail";
+    }
+}
+```
+
+`liste()` et `detail()` utilisent le meme objet `EtudiantController`.
+
+### Fonctionnement
+
+1. `ApplicationListener` scanne les classes `@controller` et leurs routes.
+2. `ControllerRegistry` cree une instance par classe, sans doublon.
+3. Les instances sont stockees dans le `ServletContext`, sous l'attribut
+   `controllerInstances` (`Map<Class<?>, Object>`).
+4. A chaque requete, `FrontControllerServlet` lit l'instance deja existante
+   dans ce registre. Il n'appelle plus `newInstance()`.
+
+Si le registre n'est pas encore disponible, `ControllerRegistry` cree
+l'instance a la demande de maniere thread-safe. Une seule instance est
+conservee par classe.
+
+### Important : controleurs partages
+
+Comme une instance est partagee par toutes les requetes concurrentes, un
+controleur doit rester **sans etat mutable** :
+
+```java
+// A eviter : champ modifie par les requetes
+private String dernierNom;
+
+// A preferer : donnees locales ou injectees
+public String action(String nom, Model model) {
+    model.setAttribute("nom", nom);
+    return "resultat";
+}
+```
+
+Pour un etat partage volontaire, utiliser des classes thread-safe
+(`AtomicInteger`, `ConcurrentHashMap`...) ou une synchronisation adaptee.
+
+### Demonstration
+
+L'application de test expose :
+
+- `GET /api/singleton` : affiche `instanceId`, `nombreInstances`,
+  `nombreAppels` et la route appelee ;
+- `GET /api/singleton/autre` : seconde methode du meme controleur.
+
+Appeler plusieurs fois ces deux URLs renvoie toujours le meme `instanceId`,
+avec `nombreInstances = 1` et un `nombreAppels` qui augmente.
+
