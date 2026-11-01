@@ -6,7 +6,11 @@ import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
+import com.framework.util.ControllerRegistry;
 import com.framework.util.DatabaseConfig;
 import com.framework.util.Mapping;
 import com.framework.util.UtilMethode;
@@ -47,6 +51,22 @@ public class ApplicationListener implements ServletContextListener {
                 DatabaseConfig.init(dbDriver, dbUrl, dbUser, dbPassword);
                 runInitSql();
             }
+
+            // Sprint 11 : une seule instance par classe de controleur.
+            // Toutes les routes d'un meme controleur partagent cette instance.
+            // L'instanciation a lieu apres l'initialisation de la base pour que
+            // les constructeurs puissent utiliser la configuration du framework.
+            Set<Class<?>> classesControleurs = new LinkedHashSet<>();
+            for (Mapping mapping : urlMapping.values()) {
+                classesControleurs.add(mapping.getControllerClass());
+            }
+
+            Map<Class<?>, Object> instancesControleurs =
+                    ControllerRegistry.creerInstances(classesControleurs);
+            ControllerRegistry.enregistrer(context, instancesControleurs);
+
+            System.out.println("[Framework] " + instancesControleurs.size()
+                    + " controleur(s) instancie(s) une seule fois");
 
             System.out.println("Framework initialise - " + urlMapping.size() + " route(s) trouvee(s)");
 
@@ -91,7 +111,9 @@ public class ApplicationListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
-
+        // Libere les references vers les controleurs lors de l'arret de
+        // l'application (utile pour le redeploiement et le ramasse-miettes).
+        sce.getServletContext().removeAttribute(ControllerRegistry.CONTEXT_ATTRIBUT);
     }
 
 }
